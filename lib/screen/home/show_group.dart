@@ -93,29 +93,11 @@ class _ShowGroupState extends State<ShowGroup> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _group!['cours_name'] ?? 'Kurs nomi mavjud emas',
+                        _group!['group_name'] ?? 'Kurs nomi mavjud emas',
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      buildItem(
-                        "O‘qituvchi",
-                        _group!['techer'] ?? 'N/A',
-                        Icons.person,
-                      ),
-                      const SizedBox(height: 8),
-                      buildItem(
-                        "Dars xonasi",
-                        _group!['room_name'] ?? 'N/A',
-                        Icons.meeting_room,
-                      ),
-                      const SizedBox(height: 8),
-                      buildItem(
-                        "Dars vaqti",
-                        _group!['time'] ?? 'N/A',
-                        Icons.access_time,
                       ),
                       const SizedBox(height: 8),
                       buildItem(

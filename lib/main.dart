@@ -1,5 +1,6 @@
 import 'package:crm_center_studen_app/screen/login/login_page.dart';
 import 'package:crm_center_studen_app/screen/main_page.dart';
+import 'package:crm_center_studen_app/screen/splash/splash_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -24,7 +25,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         appBarTheme: AppBarTheme(iconTheme: IconThemeData(color: Colors.white)),
       ),
-      home: MainPage(),
+      home: SplashPage(),
     );
   }
 }

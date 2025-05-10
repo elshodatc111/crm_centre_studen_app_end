@@ -1,10 +1,11 @@
 import 'dart:convert';
-import 'package:crm_center_studen_app/screen/home/show_group.dart';
+import 'package:crm_center_studen_app/screen/splash/splash_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart'; // ← GetStorage import qilindi
+import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:crm_center_studen_app/screen/home/show_group.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,50 +15,77 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  List<dynamic> _groups = [];
+  final List<dynamic> _groups = [];
+  final GetStorage _storage = GetStorage();
   bool _isLoading = true;
-  final GetStorage _storage = GetStorage(); // ← Storage ochildi
-  late String _token; // ← token endi initState ichida olinadi
+  String _token = '';
 
   @override
   void initState() {
     super.initState();
-    _token = _storage.read('token') ?? ''; // ← Tokenni saqlangan joydan oldik
-    fetchGroups();
+    _loadTokenAndFetchGroups();
   }
 
-  Future<void> fetchGroups() async {
-    if (_token.isEmpty) {
-      // Agar token topilmasa
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Token topilmadi. Qayta login qiling.')),
-      );
+  Future<void> _loadTokenAndFetchGroups() async {
+    final token = _storage.read('token') ?? '';
+    if (token.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _storage.erase();
+        Get.offAll(() => const SplashPage());
+      });
       setState(() => _isLoading = false);
       return;
     }
 
-    final response = await http.get(
-      Uri.parse('https://crm-center.atko.tech/api/user/groups'),
-      headers: {
-        'Authorization': 'Bearer $_token',
-        'Accept': 'application/json',
-      },
-    );
+    _token = token;
+    await fetchGroups();
+  }
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      setState(() {
-        _groups = data['groups'];
-        _isLoading = false;
-      });
-    } else {
+
+  Future<void> fetchGroups() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://crm-center.atko.tech/api/user/groups'),
+        headers: {
+          'Authorization': 'Bearer $_token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final groups = data['groups'] ?? [];
+
+        setState(() {
+          _groups.clear();
+          _groups.addAll(groups);
+          _isLoading = false;
+        });
+      } else {
+        _showSnackBar("Ma'lumotlarni olishda xatolik yuz berdi.");
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      _showSnackBar("Serverga ulanishda xatolik: $e");
       setState(() => _isLoading = false);
     }
   }
 
   String formatDate(String dateTime) {
-    final date = DateTime.parse(dateTime);
-    return DateFormat('yyyy-MM-dd').format(date);
+    try {
+      final date = DateTime.parse(dateTime);
+      return DateFormat('yyyy-MM-dd').format(date);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  void _showSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
   }
 
   @override
@@ -79,17 +107,19 @@ class _HomePageState extends State<HomePage> {
         itemBuilder: (context, index) {
           final group = _groups[index];
           return InkWell(
-            onTap: (){
-              print(group['id']);
-              Get.to(()=>ShowGroup(id: group['id'],group_name: group['group_name'],));
+            onTap: () {
+              Get.to(() => ShowGroup(
+                id: group['id'],
+                group_name: group['group_name'],
+              ));
             },
             child: Card(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Container(
-                color: Colors.white70,
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
@@ -98,49 +128,58 @@ class _HomePageState extends State<HomePage> {
                       height: 150,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        height: 150,
-                        color: Colors.grey[300],
-                        child: const Icon(
-                          Icons.broken_image,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                      ),
+                      errorBuilder: (context, error, stackTrace) =>
+                          Container(
+                            height: 150,
+                            color: Colors.grey[300],
+                            child: const Icon(
+                              Icons.broken_image,
+                              size: 50,
+                              color: Colors.grey,
+                            ),
+                          ),
                     ),
+                    const SizedBox(height: 12),
                     Text(
                       group['group_name'] ?? '',
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 24),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 24,
+                      ),
                     ),
-                    const SizedBox(height: 8.0),
+                    const SizedBox(height: 8),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             const Text(
-                              'Boshlanish vaqti',
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+                              'Boshlanish',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                             Text(
-                              group['lessen_start'] != null
-                                  ? formatDate(group['lessen_start'])
-                                  : '',
-                              style: const TextStyle(fontSize: 20),
+                              formatDate(group['lessen_start'] ?? ''),
+                              style: const TextStyle(fontSize: 16),
                             ),
                           ],
                         ),
                         Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             const Text(
-                              'Tugash vaqti',
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+                              'Tugash',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                             Text(
-                              group['lessen_end'] != null
-                                  ? formatDate(group['lessen_end'])
-                                  : '',
-                              style: const TextStyle(fontSize: 20),
+                              formatDate(group['lessen_end'] ?? ''),
+                              style: const TextStyle(fontSize: 16),
                             ),
                           ],
                         ),
