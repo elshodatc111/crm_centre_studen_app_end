@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:crm_center_studen_app/screen/login/login_page.dart';
+import 'package:crm_center_studen_app/screen/main_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -34,7 +35,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
     if (token.isEmpty) {
       Get.offAll(() => const LoginPage());
     } else {
-      Get.offAll(() => const HomePage());
+      Get.offAll(() => const MainPage());
     }
   }
 
